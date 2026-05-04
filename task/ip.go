@@ -127,22 +127,36 @@ func (r *IPRanges) chooseIPv6() {
 	if r.mask == "/128" { // 单个 IP 则无需随机，直接加入自身即可
 		r.appendIP(r.firstIP)
 	} else {
-		var tempIP uint8                  // 临时变量，用于记录前一位的值
+		i := 5
+
+	AddIP:
 		for r.ipNet.Contains(r.firstIP) { // 只要该 IP 没有超出 IP 网段范围，就继续循环随机
-			r.firstIP[15] = randIPEndWith(255) // 随机 IP 的最后一段
-			r.firstIP[14] = randIPEndWith(255) // 随机 IP 的最后一段
+			// 64位interface identifier，随机取一个
+			for i := 15; i >= 8; i-- {
+				r.firstIP[i] = randIPEndWith(255)
+			}
 
 			targetIP := make([]byte, len(r.firstIP))
 			copy(targetIP, r.firstIP)
 			r.appendIP(targetIP) // 加入 IP 地址池
 
-			for i := 13; i >= 0; i-- { // 从倒数第三位开始往前随机
-				tempIP = r.firstIP[i]              // 保存前一位的值
-				r.firstIP[i] += randIPEndWith(255) // 随机 0~255，加到当前位上
-				if r.firstIP[i] >= tempIP {        // 如果当前位的值大于等于前一位的值，说明随机成功了，可以退出该循环
+			// 16位subnet ID，低位随机，高位间隔16
+			r.firstIP[7] = randIPEndWith(255)
+			r.firstIP[6] += 16
+			if r.firstIP[6] >= 16 {
+				continue AddIP
+			}
+
+			// 48位routing prefix间隔4
+			for i >= 0 {
+				r.firstIP[i] += 4
+				if r.firstIP[i] >= 4 {
+					continue AddIP
+				} else {
 					break
 				}
 			}
+			i--
 		}
 	}
 }
