@@ -112,8 +112,8 @@ func (r *IPRanges) chooseIPv4() {
 			} else { // 随机 IP 的最后一段 0.0.0.X
 				r.appendIPv4(minIP + randIPEndWith(hosts))
 			}
-			r.firstIP[14]++ // 0.0.(X+1).X
-			if r.firstIP[14] == 0 {
+			r.firstIP[14] += 2 // 0.0.(X+1).X
+			if r.firstIP[14] <= 1 {
 				r.firstIP[13]++ // 0.(X+1).X.X
 				if r.firstIP[13] == 0 {
 					r.firstIP[12]++ // (X+1).X.X.X
@@ -127,8 +127,7 @@ func (r *IPRanges) chooseIPv6() {
 	if r.mask == "/128" { // 单个 IP 则无需随机，直接加入自身即可
 		r.appendIP(r.firstIP)
 	} else {
-		i := 5
-
+		i := 5 // routing prefix
 	AddIP:
 		for r.ipNet.Contains(r.firstIP) { // 只要该 IP 没有超出 IP 网段范围，就继续循环随机
 			// 64位interface identifier，随机取一个
@@ -140,23 +139,21 @@ func (r *IPRanges) chooseIPv6() {
 			copy(targetIP, r.firstIP)
 			r.appendIP(targetIP) // 加入 IP 地址池
 
-			// 16位subnet ID，低位随机，高位间隔16
+			// 16位subnet ID，低位随机
 			r.firstIP[7] = randIPEndWith(255)
-			r.firstIP[6] += 16
-			if r.firstIP[6] >= 16 {
+			r.firstIP[6] += 64
+			if r.firstIP[6] >= 64 {
 				continue AddIP
 			}
 
-			// 48位routing prefix间隔4
+			// 48位routing prefix
 			for i >= 0 {
-				r.firstIP[i] += 4
-				if r.firstIP[i] >= 4 {
+				r.firstIP[i] += 8
+				if r.firstIP[i] >= 8 {
 					continue AddIP
-				} else {
-					break
 				}
+				i--
 			}
-			i--
 		}
 	}
 }
