@@ -112,11 +112,11 @@ func (r *IPRanges) chooseIPv4() {
 			} else { // 随机 IP 的最后一段 0.0.0.X
 				r.appendIPv4(minIP + randIPEndWith(hosts))
 			}
-			r.firstIP[14] += 2 // 0.0.(X+1).X
-			if r.firstIP[14] <= 1 {
-				r.firstIP[13]++ // 0.(X+1).X.X
-				if r.firstIP[13] == 0 {
-					r.firstIP[12]++ // (X+1).X.X.X
+			r.firstIP[14] += 8 // 0.0.(X+1).X
+			if r.firstIP[14] < 8 {
+				r.firstIP[13] += 2 // 0.(X+1).X.X
+				if r.firstIP[13] < 2 {
+					r.firstIP[12] += 1 // (X+1).X.X.X
 				}
 			}
 		}
